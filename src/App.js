@@ -8,8 +8,8 @@ import ScoreScreen from "./screens/ScoreScreen";
 import Loader from "./components/Loader";
 import {
   fetchQuestionsByMonth,
-  fetchQuestionsByTopic, // <-- Import the new function
-} from "./api/quizApi";
+  fetchQuestionsByTopic,
+} from "./api/supabaseApi"; // <-- Import from your new Supabase API file
 
 const App = () => {
   const [screen, setScreen] = useState("mode");
@@ -36,9 +36,9 @@ const App = () => {
     try {
       let fetchedQuestions = [];
       if (filterType === "month") {
+        // This will now correctly call the Supabase function
         fetchedQuestions = await fetchQuestionsByMonth(value);
       } else {
-        // Use the new, efficient function for topics
         fetchedQuestions = await fetchQuestionsByTopic(value);
       }
 
@@ -77,46 +77,43 @@ const App = () => {
     setScreen("quiz");
   };
 
-  const handleNavigate = useCallback(
-    (target) => {
-      if (target === "mode") {
-        setActiveRoute("home");
-        setScreen("mode");
-        setMode(null);
-        setFilterType(null);
-        setQuestions([]);
-      } else if (target === "bookmarks" || target === "emptyBookmarks") {
-        setActiveRoute("bookmarks");
+  const handleNavigate = useCallback((target) => {
+    if (target === "mode") {
+      setActiveRoute("home");
+      setScreen("mode");
+      setMode(null);
+      setFilterType(null);
+      setQuestions([]);
+    } else if (target === "bookmarks" || target === "emptyBookmarks") {
+      setActiveRoute("bookmarks");
 
-        if (target === "emptyBookmarks") {
-          setScreen("emptyBookmarks");
-          return;
-        }
-
-        const loadBookmarks = () => {
-          try {
-            const stored = localStorage.getItem("bookmarkedQuestions");
-            if (stored) return new Map(JSON.parse(stored));
-          } catch (e) {
-            console.error(e);
-          }
-          return new Map();
-        };
-
-        const bookmarks = loadBookmarks();
-        const bookmarkedQuestionsArray = Array.from(bookmarks.values());
-
-        if (bookmarkedQuestionsArray.length > 0) {
-          setQuestions(bookmarkedQuestionsArray);
-          setMode("review");
-          setScreen("quiz");
-        } else {
-          setScreen("emptyBookmarks");
-        }
+      if (target === "emptyBookmarks") {
+        setScreen("emptyBookmarks");
+        return;
       }
-    },
-    [setActiveRoute, setScreen, setMode, setFilterType, setQuestions]
-  );
+
+      const loadBookmarks = () => {
+        try {
+          const stored = localStorage.getItem("bookmarkedQuestions");
+          if (stored) return new Map(JSON.parse(stored));
+        } catch (e) {
+          console.error(e);
+        }
+        return new Map();
+      };
+
+      const bookmarks = loadBookmarks();
+      const bookmarkedQuestionsArray = Array.from(bookmarks.values());
+
+      if (bookmarkedQuestionsArray.length > 0) {
+        setQuestions(bookmarkedQuestionsArray);
+        setMode("review");
+        setScreen("quiz");
+      } else {
+        setScreen("emptyBookmarks");
+      }
+    }
+  }, []);
 
   const renderScreen = () => {
     if (loading) {
