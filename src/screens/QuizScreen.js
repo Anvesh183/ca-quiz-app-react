@@ -4,7 +4,6 @@ import QuestionPalette from "../components/QuestionPalette";
 import Loader from "../components/Loader";
 
 const QuizScreen = ({ questions, mode, onQuizEnd, handleNavigate }) => {
-  // <-- Accept handleNavigate
   const {
     questions: quizQuestions,
     currentQuestionIndex,
@@ -13,6 +12,7 @@ const QuizScreen = ({ questions, mode, onQuizEnd, handleNavigate }) => {
     timeLeft,
     bookmarkedQuestions,
     handleOptionClick,
+    handleClearAnswer,
     goToNext,
     goToPrev,
     handlePaletteClick,
@@ -20,25 +20,25 @@ const QuizScreen = ({ questions, mode, onQuizEnd, handleNavigate }) => {
     handleQuizSubmit,
   } = useQuizEngine(questions, mode, onQuizEnd);
 
-  // FIX: This effect will run whenever the list of quiz questions changes.
   useEffect(() => {
-    // If we are in review mode and the list of questions becomes empty...
     if (mode === "review" && quizQuestions.length === 0) {
-      // ...navigate the user to the empty bookmarks screen.
       handleNavigate("emptyBookmarks");
     }
   }, [quizQuestions, mode, handleNavigate]);
 
   const currentQuestion = quizQuestions[currentQuestionIndex];
+  const selectedAnswer = userAnswers[currentQuestionIndex];
 
-  // If there's no current question (e.g., the list is empty), show a loader
-  // to prevent a crash before the navigation effect can run.
   if (!currentQuestion) {
     return <Loader />;
   }
 
   const formatTime = (s) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  // --- NEW: Calculate the progress percentage ---
+  const progressPercentage =
+    ((currentQuestionIndex + 1) / quizQuestions.length) * 100;
 
   return (
     <div id="screen-quiz">
@@ -48,6 +48,14 @@ const QuizScreen = ({ questions, mode, onQuizEnd, handleNavigate }) => {
             id="quiz-panel"
             className="w-full bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-6 md:p-8"
           >
+            {/* --- NEW: VISUAL PROGRESS BAR --- */}
+            <div className="w-full bg-gray-700 rounded-full h-2.5 mb-4">
+              <div
+                className="bg-indigo-500 h-2.5 rounded-full transition-all duration-300 ease-in-out"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
+
             <div className="flex justify-between items-center mb-4">
               <p id="progress-text" className="text-sm text-gray-400">
                 {`Question ${currentQuestionIndex + 1} of ${
@@ -60,6 +68,7 @@ const QuizScreen = ({ questions, mode, onQuizEnd, handleNavigate }) => {
                 </p>
               )}
             </div>
+
             <div id="question-container" className="w-full text-left">
               <p
                 id="question-text"
@@ -68,25 +77,57 @@ const QuizScreen = ({ questions, mode, onQuizEnd, handleNavigate }) => {
                 {currentQuestion.question}
               </p>
             </div>
+
             <div
               id="options-container"
               className="w-full flex flex-col space-y-4"
             >
-              {currentQuestion.options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleOptionClick(option)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 border-2 flex justify-between items-center 
-                   ${
-                     userAnswers[currentQuestionIndex] === option
-                       ? "bg-indigo-500/50 border-indigo-400"
-                       : "bg-gray-700 hover:bg-gray-600 border-transparent"
-                   }`}
-                >
-                  {option}
-                </button>
-              ))}
+              {currentQuestion.options.map((option, index) => {
+                const isSelected = selectedAnswer === option;
+                const isCorrect = currentQuestion.answer === option;
+                let buttonClass =
+                  "bg-gray-700 hover:bg-gray-600 border-transparent";
+
+                if (isSelected) {
+                  if (
+                    mode === "practice" ||
+                    mode === "exam" ||
+                    mode === "review"
+                  ) {
+                    buttonClass = isCorrect
+                      ? "bg-green-500/20 border-green-500"
+                      : "bg-red-500/20 border-red-500";
+                  } else {
+                    buttonClass = "bg-indigo-500/50 border-indigo-400";
+                  }
+                } else if (
+                  selectedAnswer &&
+                  (mode === "practice" || mode === "review") &&
+                  isCorrect
+                ) {
+                  buttonClass = "bg-green-500/20 border-green-500";
+                }
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleOptionClick(option)}
+                    disabled={selectedAnswer && mode === "practice"}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 border-2 flex justify-between items-center ${buttonClass}`}
+                  >
+                    {option}
+                    {isSelected &&
+                      mode === "exam" &&
+                      (isCorrect ? (
+                        <i className="fas fa-check-circle text-green-400"></i>
+                      ) : (
+                        <i className="fas fa-times-circle text-red-400"></i>
+                      ))}
+                  </button>
+                );
+              })}
             </div>
+
             <div className="mt-8 w-full">
               <div
                 id="navigation-buttons"
@@ -100,6 +141,17 @@ const QuizScreen = ({ questions, mode, onQuizEnd, handleNavigate }) => {
                 >
                   Previous
                 </button>
+
+                {selectedAnswer && mode !== "review" && (
+                  <button
+                    onClick={handleClearAnswer}
+                    id="clear-button"
+                    className="nav-button bg-gray-700"
+                  >
+                    Clear Answer
+                  </button>
+                )}
+
                 <button
                   onClick={goToNext}
                   disabled={currentQuestionIndex === quizQuestions.length - 1}
