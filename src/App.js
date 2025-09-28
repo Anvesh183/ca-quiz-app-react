@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react"; // <-- Import useCallback
+import React, { useState, useCallback } from "react";
 import Layout from "./components/Layout";
 import ModeScreen from "./screens/ModeScreen";
 import FilterTypeScreen from "./screens/FilterTypeScreen";
@@ -6,7 +6,10 @@ import FilterValueScreen from "./screens/FilterValueScreen";
 import QuizScreen from "./screens/QuizScreen";
 import ScoreScreen from "./screens/ScoreScreen";
 import Loader from "./components/Loader";
-import { fetchQuestionsByMonth, fetchQuestionsByTopic } from "./api/quizApi";
+import {
+  fetchQuestionsByMonth,
+  fetchQuestionsByTopic, // <-- Import the new function
+} from "./api/quizApi";
 
 const App = () => {
   const [screen, setScreen] = useState("mode");
@@ -35,6 +38,7 @@ const App = () => {
       if (filterType === "month") {
         fetchedQuestions = await fetchQuestionsByMonth(value);
       } else {
+        // Use the new, efficient function for topics
         fetchedQuestions = await fetchQuestionsByTopic(value);
       }
 
@@ -73,7 +77,6 @@ const App = () => {
     setScreen("quiz");
   };
 
-  // FIX: Wrap handleNavigate in useCallback to stabilize it
   const handleNavigate = useCallback(
     (target) => {
       if (target === "mode") {
@@ -113,7 +116,7 @@ const App = () => {
       }
     },
     [setActiveRoute, setScreen, setMode, setFilterType, setQuestions]
-  ); // Dependencies for useCallback
+  );
 
   const renderScreen = () => {
     if (loading) {
@@ -137,7 +140,6 @@ const App = () => {
           />
         );
       case "quiz":
-        // FIX: Remove the problematic state update from the render function
         return (
           <QuizScreen
             questions={questions}

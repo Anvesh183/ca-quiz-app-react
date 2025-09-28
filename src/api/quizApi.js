@@ -8,6 +8,7 @@ export const fetchTopics = async () => {
   return response.json();
 };
 
+// This function fetches ALL questions and should only be used if needed
 export const fetchAllQuestions = async () => {
   const response = await fetch(`${API_BASE_URL}/questions`);
   if (!response.ok) {
@@ -26,7 +27,10 @@ export const fetchQuestionsByMonth = async (monthId) => {
   return questions.map((q) => ({ ...q, monthId }));
 };
 
+// --- THIS IS THE NEW, EFFICIENT FUNCTION ---
+// It fetches only the questions for a specific topic from the backend
 export const fetchQuestionsByTopic = async (topicName) => {
+  // We use encodeURIComponent to handle special characters in topic names
   const encodedTopic = encodeURIComponent(topicName);
   const response = await fetch(
     `${API_BASE_URL}/questions/topic/${encodedTopic}`
@@ -34,6 +38,5 @@ export const fetchQuestionsByTopic = async (topicName) => {
   if (!response.ok) {
     throw new Error(`Failed to fetch questions for topic ${topicName}`);
   }
-  const questions = await response.json();
-  return questions.map((q) => ({ ...q, topicId: topicName }));
+  return response.json();
 };
