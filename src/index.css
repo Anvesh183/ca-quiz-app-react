@@ -420,3 +420,8 @@ body.light-mode {
 .light-mode header.md\:hidden button {
   color: var(--text-light);
 }
+
+/* --- FIX FOR SIDEBAR USER EMAIL IN LIGHT MODE --- */
+.light-mode #sidebar .text-white {
+  color: var(--text-light);
+}
