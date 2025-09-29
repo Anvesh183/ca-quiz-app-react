@@ -3,7 +3,7 @@ import useTheme from "../hooks/useTheme";
 
 const Sidebar = ({
   onNavigate,
-  activeRoute, // <-- Accept activeRoute
+  activeRoute,
   isMobileOpen,
   isDesktopCollapsed,
   onToggleMobile,
@@ -11,7 +11,8 @@ const Sidebar = ({
 }) => {
   const [theme, toggleTheme] = useTheme();
 
-  const handleNavClick = (target) => {
+  const handleNavClick = (e, target) => {
+    e.preventDefault(); // Prevent default anchor tag behavior
     onNavigate(target);
     if (isMobileOpen) {
       onToggleMobile();
@@ -47,32 +48,21 @@ const Sidebar = ({
           ></i>
         </button>
       </div>
+
       <nav className={`flex-1 space-y-2 ${isDesktopCollapsed ? "p-2" : "p-4"}`}>
         <a
           href="#"
           id="nav-home"
-          // FIX: Dynamic classes based on activeRoute
           className={`nav-link ${isDesktopCollapsed && "justify-center"} ${
             activeRoute === "home" ? "bg-gray-700 text-white" : ""
           }`}
-          onClick={() => handleNavClick("mode")}
+          onClick={(e) => handleNavClick(e, "home")}
         >
           <i className="fas fa-home w-6"></i>
           {!isDesktopCollapsed && <span className="ml-4">Home</span>}
         </a>
-        <a
-          href="#"
-          id="nav-bookmarks"
-          // FIX: Dynamic classes based on activeRoute
-          className={`nav-link ${isDesktopCollapsed && "justify-center"} ${
-            activeRoute === "bookmarks" ? "bg-gray-700 text-white" : ""
-          }`}
-          onClick={() => handleNavClick("bookmarks")}
-        >
-          <i className="fas fa-bookmark w-6"></i>
-          {!isDesktopCollapsed && <span className="ml-4">Bookmarks</span>}
-        </a>
       </nav>
+
       <div className="p-4 border-t border-gray-700">
         <button
           id="theme-switcher"

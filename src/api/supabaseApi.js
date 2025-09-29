@@ -1,7 +1,7 @@
 import { supabase } from "../supabaseClient";
 
 /**
- * Fetches a unique, sorted list of all topics from the database.
+ * Fetches a unique, sorted list of all topics.
  */
 export const fetchTopics = async () => {
   const { data, error } = await supabase.from("questions").select("topic");
@@ -41,7 +41,7 @@ export const fetchQuestionsByMonth = async (monthId) => {
   const { data, error } = await supabase
     .from("questions")
     .select("*")
-    .eq("month", monthId); // This now queries the 'month' column you created
+    .eq("month", monthId);
 
   if (error) {
     console.error("Error fetching questions by month:", error);

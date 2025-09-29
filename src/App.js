@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Layout from "./components/Layout";
 import ModeScreen from "./screens/ModeScreen";
 import FilterTypeScreen from "./screens/FilterTypeScreen";
@@ -9,7 +9,7 @@ import Loader from "./components/Loader";
 import {
   fetchQuestionsByMonth,
   fetchQuestionsByTopic,
-} from "./api/supabaseApi"; // <-- Import from your new Supabase API file
+} from "./api/supabaseApi";
 
 const App = () => {
   const [screen, setScreen] = useState("mode");
@@ -20,38 +20,48 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState(null);
   const [lastQuiz, setLastQuiz] = useState(null);
+  const [reviewAnswers, setReviewAnswers] = useState({});
 
-  const handleSelectMode = (selectedMode) => {
-    setMode(selectedMode);
-    setScreen("filterType");
-  };
+  const resetToHome = useCallback(() => {
+    setActiveRoute("home");
+    setScreen("mode");
+    setMode(null);
+    setFilterType(null);
+    setReviewAnswers({});
+  }, []);
 
-  const handleSelectFilterType = (type) => {
-    setFilterType(type);
-    setScreen("filterValue");
-  };
+  const handleNavigate = useCallback(
+    (target) => {
+      setReviewAnswers({});
+      if (target === "home") {
+        resetToHome();
+        return;
+      }
+      // Fallback for any other navigation target
+      resetToHome();
+    },
+    [resetToHome]
+  );
 
   const handleSelectFilterValue = async (value) => {
     setLoading(true);
     try {
       let fetchedQuestions = [];
       if (filterType === "month") {
-        // This will now correctly call the Supabase function
         fetchedQuestions = await fetchQuestionsByMonth(value);
       } else {
         fetchedQuestions = await fetchQuestionsByTopic(value);
       }
-
       if (fetchedQuestions.length === 0) {
-        alert(`No questions found for "${value}". Please try another option.`);
+        alert(`No questions found.`);
         setScreen("filterValue");
       } else {
         setQuestions(fetchedQuestions);
         setScreen("quiz");
       }
     } catch (error) {
-      console.error("Failed to fetch questions:", error);
-      alert("Could not load questions. Please try again later.");
+      alert("Could not load questions.");
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -61,70 +71,38 @@ const App = () => {
     setScore(results);
     setLastQuiz({
       questions: results.questions,
-      mode,
       userAnswers: results.userAnswers,
     });
     setScreen("score");
   };
 
-  const handleRestart = () => {
-    setScreen("quiz");
-  };
-
   const handleReview = () => {
     setQuestions(lastQuiz.questions);
     setMode("review");
+    setReviewAnswers(lastQuiz.userAnswers);
     setScreen("quiz");
   };
 
-  const handleNavigate = useCallback((target) => {
-    if (target === "mode") {
-      setActiveRoute("home");
-      setScreen("mode");
-      setMode(null);
-      setFilterType(null);
-      setQuestions([]);
-    } else if (target === "bookmarks" || target === "emptyBookmarks") {
-      setActiveRoute("bookmarks");
-
-      if (target === "emptyBookmarks") {
-        setScreen("emptyBookmarks");
-        return;
-      }
-
-      const loadBookmarks = () => {
-        try {
-          const stored = localStorage.getItem("bookmarkedQuestions");
-          if (stored) return new Map(JSON.parse(stored));
-        } catch (e) {
-          console.error(e);
-        }
-        return new Map();
-      };
-
-      const bookmarks = loadBookmarks();
-      const bookmarkedQuestionsArray = Array.from(bookmarks.values());
-
-      if (bookmarkedQuestionsArray.length > 0) {
-        setQuestions(bookmarkedQuestionsArray);
-        setMode("review");
-        setScreen("quiz");
-      } else {
-        setScreen("emptyBookmarks");
-      }
-    }
-  }, []);
-
   const renderScreen = () => {
-    if (loading) {
-      return <Loader />;
-    }
+    if (loading) return <Loader />;
 
     switch (screen) {
+      case "mode":
+        return (
+          <ModeScreen
+            onSelectMode={(m) => {
+              setMode(m);
+              setScreen("filterType");
+            }}
+          />
+        );
       case "filterType":
         return (
           <FilterTypeScreen
-            onSelectFilterType={handleSelectFilterType}
+            onSelectFilterType={(f) => {
+              setFilterType(f);
+              setScreen("filterValue");
+            }}
             onBack={() => setScreen("mode")}
           />
         );
@@ -143,38 +121,31 @@ const App = () => {
             mode={mode}
             onQuizEnd={handleQuizEnd}
             handleNavigate={handleNavigate}
+            initialAnswers={reviewAnswers}
+            activeRoute={activeRoute}
           />
         );
       case "score":
         return (
           <ScoreScreen
             score={score}
-            onRestart={handleRestart}
+            onRestart={() => {
+              setReviewAnswers({});
+              setScreen("quiz");
+            }}
             onReview={handleReview}
-            onHome={() => handleNavigate("mode")}
+            onHome={resetToHome}
           />
         );
-      case "emptyBookmarks":
-        return (
-          <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              No Bookmarked Questions
-            </h1>
-            <p className="text-gray-400 mb-8">
-              You haven't bookmarked any questions yet. Bookmark questions
-              during a quiz to review them here.
-            </p>
-            <button
-              className="nav-button bg-indigo-600"
-              onClick={() => handleNavigate("mode")}
-            >
-              Back to Home
-            </button>
-          </div>
-        );
-      case "mode":
       default:
-        return <ModeScreen onSelectMode={handleSelectMode} />;
+        return (
+          <ModeScreen
+            onSelectMode={(m) => {
+              setMode(m);
+              setScreen("filterType");
+            }}
+          />
+        );
     }
   };
 
