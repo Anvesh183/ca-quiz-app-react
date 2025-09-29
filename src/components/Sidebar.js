@@ -33,7 +33,7 @@ const Sidebar = ({
         {!isDesktopCollapsed && (
           <div id="sidebar-header">
             <h1 className="text-2xl font-bold text-indigo-400">
-              Current Affairs
+              Affairs Acumen
             </h1>
             <p className="text-xs text-gray-400 mt-1">Main Menu</p>
           </div>

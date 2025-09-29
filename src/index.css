@@ -425,3 +425,7 @@ body.light-mode {
 .light-mode #sidebar .text-white {
   color: var(--text-light);
 }
+
+#logo {
+  border-radius: 50%;
+}

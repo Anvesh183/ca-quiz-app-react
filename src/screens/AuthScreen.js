@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { signUp, signIn, sendPasswordResetEmail } from "../api/supabaseApi";
+import logo from "../assets/logo1.png"; // Make sure your logo is here
 
 const AuthScreen = () => {
   const [email, setEmail] = useState("");
@@ -278,6 +279,14 @@ const AuthScreen = () => {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-xl shadow-2xl">
+        <div className="flex justify-center">
+          <img
+            id="logo"
+            src={logo}
+            alt="Affairs Acumen Logo"
+            className="h-24"
+          />
+        </div>
         <h1 className="text-3xl font-bold text-center text-white">
           {getTitle()}
         </h1>

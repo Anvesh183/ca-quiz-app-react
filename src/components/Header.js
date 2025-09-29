@@ -5,7 +5,7 @@ const Header = ({ onToggleSidebar }) => (
     <button onClick={onToggleSidebar} className="text-white text-2xl">
       <i className="fas fa-bars"></i>
     </button>
-    <h1 className="text-lg font-semibold text-indigo-400">Current Affairs</h1>
+    <h1 className="text-lg font-semibold text-indigo-400">Affairs Acumen</h1>
   </header>
 );
 
