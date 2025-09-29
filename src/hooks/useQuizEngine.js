@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 
 const shuffleArray = (array) => {
+  // Defensive check: If it's not an array, return an empty one to prevent crashes.
+  if (!Array.isArray(array)) {
+    return [];
+  }
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -28,12 +32,12 @@ const useQuizEngine = (
     if (mode !== "review") {
       questionsToLoad = shuffleArray(questionsToLoad).map((q) => ({
         ...q,
+        // The shuffleArray function now safely handles cases where q.options might not be an array
         options: shuffleArray(q.options),
       }));
     }
     setQuestions(questionsToLoad);
 
-    // Safety check: if the current index is out of bounds, reset to the last question
     if (currentQuestionIndex >= questionsToLoad.length) {
       setCurrentQuestionIndex(Math.max(0, questionsToLoad.length - 1));
     } else {
