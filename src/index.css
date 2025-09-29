@@ -415,3 +415,8 @@ body.light-mode {
     transform: rotate(360deg);
   }
 }
+
+/* --- FIX FOR MOBILE HEADER ICON IN LIGHT MODE --- */
+.light-mode header.md\:hidden button {
+  color: var(--text-light);
+}
