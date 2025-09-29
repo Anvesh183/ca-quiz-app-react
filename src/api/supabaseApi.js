@@ -5,27 +5,22 @@ import { supabase } from "../supabaseClient";
  */
 export const fetchTopics = async () => {
   const { data, error } = await supabase.from("questions").select("topic");
-
   if (error) {
     console.error("Error fetching topics:", error);
     throw new Error(error.message);
   }
-
-  // Use a Set to get unique topic names and then sort them
   const uniqueTopics = [...new Set(data.map((item) => item.topic))].sort();
   return uniqueTopics;
 };
 
 /**
  * Fetches all questions for a specific topic.
- * @param {string} topicName - The name of the topic to fetch questions for.
  */
 export const fetchQuestionsByTopic = async (topicName) => {
   const { data, error } = await supabase
     .from("questions")
     .select("*")
     .eq("topic", topicName);
-
   if (error) {
     console.error("Error fetching questions by topic:", error);
     throw new Error(error.message);
@@ -35,17 +30,108 @@ export const fetchQuestionsByTopic = async (topicName) => {
 
 /**
  * Fetches all questions for a specific month.
- * @param {string} monthId - The identifier for the month (e.g., 'september-2025').
  */
 export const fetchQuestionsByMonth = async (monthId) => {
   const { data, error } = await supabase
     .from("questions")
     .select("*")
     .eq("month", monthId);
-
   if (error) {
     console.error("Error fetching questions by month:", error);
     throw new Error(error.message);
   }
   return data;
+};
+
+// --- AUTHENTICATION FUNCTIONS ---
+export const signUp = async (email, password, fullName, phone) => {
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+        phone: phone,
+      },
+    },
+  });
+};
+
+export const signIn = async (email, password) => {
+  return supabase.auth.signInWithPassword({ email, password });
+};
+
+export const signOut = async () => {
+  return supabase.auth.signOut();
+};
+
+export const onAuthStateChange = (callback) => {
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session);
+  });
+  return subscription;
+};
+
+export const getCurrentUser = async () => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.user ?? null;
+};
+
+// --- NEW DATABASE-DRIVEN BOOKMARK FUNCTIONS ---
+
+/**
+ * Fetches the IDs of all questions bookmarked by a user.
+ */
+export const fetchBookmarkIds = async (userId) => {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("bookmarks")
+    .select("question_id")
+    .eq("user_id", userId);
+  if (error) {
+    console.error("Error fetching bookmarks:", error);
+    return [];
+  }
+  return data.map((b) => b.question_id);
+};
+
+/**
+ * Fetches the full question objects for an array of question IDs.
+ */
+export const fetchQuestionsByIds = async (questionIds) => {
+  if (!questionIds || questionIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("questions")
+    .select("*")
+    .in("id", questionIds);
+  if (error) {
+    console.error("Error fetching questions by IDs:", error);
+    return [];
+  }
+  return data;
+};
+
+/**
+ * Adds a bookmark for a user and question.
+ */
+export const addBookmark = async (userId, questionId) => {
+  const { error } = await supabase
+    .from("bookmarks")
+    .insert([{ user_id: userId, question_id: questionId }]);
+  if (error) console.error("Error adding bookmark:", error);
+};
+
+/**
+ * Removes a bookmark for a user and question.
+ */
+export const removeBookmark = async (userId, questionId) => {
+  const { error } = await supabase
+    .from("bookmarks")
+    .delete()
+    .match({ user_id: userId, question_id: questionId });
+  if (error) console.error("Error removing bookmark:", error);
 };

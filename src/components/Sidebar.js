@@ -2,6 +2,8 @@ import React from "react";
 import useTheme from "../hooks/useTheme";
 
 const Sidebar = ({
+  user,
+  onSignOut,
   onNavigate,
   activeRoute,
   isMobileOpen,
@@ -12,7 +14,7 @@ const Sidebar = ({
   const [theme, toggleTheme] = useTheme();
 
   const handleNavClick = (e, target) => {
-    e.preventDefault(); // Prevent default anchor tag behavior
+    e.preventDefault();
     onNavigate(target);
     if (isMobileOpen) {
       onToggleMobile();
@@ -61,9 +63,34 @@ const Sidebar = ({
           <i className="fas fa-home w-6"></i>
           {!isDesktopCollapsed && <span className="ml-4">Home</span>}
         </a>
+        <a
+          href="#"
+          id="nav-bookmarks"
+          className={`nav-link ${isDesktopCollapsed && "justify-center"} ${
+            activeRoute === "bookmarks" ? "bg-gray-700 text-white" : ""
+          }`}
+          onClick={(e) => handleNavClick(e, "bookmarks")}
+        >
+          <i className="fas fa-bookmark w-6"></i>
+          {!isDesktopCollapsed && <span className="ml-4">Bookmarks</span>}
+        </a>
       </nav>
 
-      <div className="p-4 border-t border-gray-700">
+      <div className={`p-4 border-t border-gray-700`}>
+        {user && !isDesktopCollapsed && (
+          <div className="mb-4 text-center">
+            <p className="text-sm text-gray-400">Signed in as</p>
+            <p className="font-bold text-white truncate">{user.email}</p>
+          </div>
+        )}
+        <button
+          id="sign-out-button"
+          className="w-full flex items-center justify-center nav-button bg-red-600 hover:bg-red-700 mb-4"
+          onClick={onSignOut}
+        >
+          <i className={`fas fa-sign-out-alt mr-2`}></i>
+          {!isDesktopCollapsed && <span>Sign Out</span>}
+        </button>
         <button
           id="theme-switcher"
           className="w-full flex items-center justify-center nav-button"

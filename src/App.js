@@ -6,12 +6,22 @@ import FilterValueScreen from "./screens/FilterValueScreen";
 import QuizScreen from "./screens/QuizScreen";
 import ScoreScreen from "./screens/ScoreScreen";
 import Loader from "./components/Loader";
+import AuthScreen from "./screens/AuthScreen";
 import {
   fetchQuestionsByMonth,
   fetchQuestionsByTopic,
+  onAuthStateChange,
+  signOut,
+  getCurrentUser,
+  fetchBookmarkIds,
+  fetchQuestionsByIds,
+  addBookmark,
+  removeBookmark,
 } from "./api/supabaseApi";
 
 const App = () => {
+  const [session, setSession] = useState(null);
+  const [loadingSession, setLoadingSession] = useState(true);
   const [screen, setScreen] = useState("mode");
   const [activeRoute, setActiveRoute] = useState("home");
   const [mode, setMode] = useState(null);
@@ -21,6 +31,44 @@ const App = () => {
   const [score, setScore] = useState(null);
   const [lastQuiz, setLastQuiz] = useState(null);
   const [reviewAnswers, setReviewAnswers] = useState({});
+  const [bookmarkedQuestions, setBookmarkedQuestions] = useState(new Map());
+
+  useEffect(() => {
+    const fetchInitialData = async (user) => {
+      if (user) {
+        const bookmarkIds = await fetchBookmarkIds(user.id);
+        const questionsData = await fetchQuestionsByIds(bookmarkIds);
+        setBookmarkedQuestions(new Map(questionsData.map((q) => [q.id, q])));
+      } else {
+        setBookmarkedQuestions(new Map());
+      }
+    };
+
+    const setupAuthListener = () => {
+      const subscription = onAuthStateChange(async (session) => {
+        setSession(session);
+        await fetchInitialData(session?.user);
+      });
+      return subscription;
+    };
+
+    const checkCurrentUser = async () => {
+      setLoadingSession(true);
+      const user = await getCurrentUser();
+      if (user) {
+        setSession({ user });
+        await fetchInitialData(user);
+      }
+      setLoadingSession(false);
+    };
+
+    checkCurrentUser();
+    const subscription = setupAuthListener();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const resetToHome = useCallback(() => {
     setActiveRoute("home");
@@ -37,11 +85,52 @@ const App = () => {
         resetToHome();
         return;
       }
-      // Fallback for any other navigation target
+      if (target === "bookmarks") {
+        setActiveRoute("bookmarks");
+        const bookmarkedArray = Array.from(bookmarkedQuestions.values());
+
+        if (bookmarkedArray.length > 0) {
+          setQuestions(bookmarkedArray);
+          setMode("review");
+          setScreen("quiz");
+        } else {
+          setScreen("emptyBookmarks");
+        }
+        return;
+      }
+      if (target === "emptyBookmarks") {
+        setActiveRoute("bookmarks");
+        setScreen("emptyBookmarks");
+        return;
+      }
       resetToHome();
     },
-    [resetToHome]
+    [resetToHome, bookmarkedQuestions]
   );
+
+  const handleBookmarkUpdate = async (question, isCurrentlyBookmarked) => {
+    if (!session?.user) return;
+    const { user } = session;
+
+    const newBookmarks = new Map(bookmarkedQuestions);
+    if (isCurrentlyBookmarked) {
+      await removeBookmark(user.id, question.id);
+      newBookmarks.delete(question.id);
+    } else {
+      await addBookmark(user.id, question.id);
+      newBookmarks.set(question.id, question);
+    }
+    setBookmarkedQuestions(newBookmarks);
+
+    // If we are on the bookmarks screen, update the live question list
+    if (activeRoute === "bookmarks") {
+      const newQuestions = Array.from(newBookmarks.values());
+      setQuestions(newQuestions);
+      if (newQuestions.length === 0) {
+        handleNavigate("emptyBookmarks");
+      }
+    }
+  };
 
   const handleSelectFilterValue = async (value) => {
     setLoading(true);
@@ -83,9 +172,8 @@ const App = () => {
     setScreen("quiz");
   };
 
-  const renderScreen = () => {
+  const renderAppContent = () => {
     if (loading) return <Loader />;
-
     switch (screen) {
       case "mode":
         return (
@@ -117,12 +205,15 @@ const App = () => {
       case "quiz":
         return (
           <QuizScreen
+            key={questions.length} // Force re-mount when the number of questions changes
             questions={questions}
             mode={mode}
             onQuizEnd={handleQuizEnd}
             handleNavigate={handleNavigate}
             initialAnswers={reviewAnswers}
             activeRoute={activeRoute}
+            bookmarkedQuestions={bookmarkedQuestions}
+            onBookmarkUpdate={handleBookmarkUpdate}
           />
         );
       case "score":
@@ -137,6 +228,18 @@ const App = () => {
             onHome={resetToHome}
           />
         );
+      case "emptyBookmarks":
+        return (
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white">No Bookmarks Yet</h1>
+            <p className="text-gray-400 my-4">
+              You can bookmark questions during any quiz.
+            </p>
+            <button className="nav-button bg-indigo-600" onClick={resetToHome}>
+              Back to Home
+            </button>
+          </div>
+        );
       default:
         return (
           <ModeScreen
@@ -149,9 +252,17 @@ const App = () => {
     }
   };
 
+  if (loadingSession) return <Loader />;
+  if (!session) return <AuthScreen />;
+
   return (
-    <Layout onNavigate={handleNavigate} activeRoute={activeRoute}>
-      {renderScreen()}
+    <Layout
+      user={session.user}
+      onSignOut={signOut}
+      onNavigate={handleNavigate}
+      activeRoute={activeRoute}
+    >
+      {renderAppContent()}
     </Layout>
   );
 };

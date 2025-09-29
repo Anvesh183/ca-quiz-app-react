@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import useQuizEngine from "../hooks/useQuizEngine";
 import QuestionPalette from "../components/QuestionPalette";
 import Loader from "../components/Loader";
@@ -10,6 +10,8 @@ const QuizScreen = ({
   handleNavigate,
   initialAnswers = {},
   activeRoute,
+  bookmarkedQuestions,
+  onBookmarkUpdate,
 }) => {
   const {
     questions: quizQuestions,
@@ -26,11 +28,16 @@ const QuizScreen = ({
   } = useQuizEngine(questions, mode, onQuizEnd, initialAnswers, activeRoute);
 
   const currentQuestion = quizQuestions[currentQuestionIndex];
-  const selectedAnswer = userAnswers[currentQuestionIndex];
 
   if (!currentQuestion) {
     return <Loader />;
   }
+
+  const isBookmarked = bookmarkedQuestions.has(currentQuestion.id);
+
+  const handleBookmarkClick = () => {
+    onBookmarkUpdate(currentQuestion, isBookmarked);
+  };
 
   const formatTime = (s) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -40,7 +47,8 @@ const QuizScreen = ({
       : 0;
 
   const showExplanation =
-    (mode === "practice" && selectedAnswer) || mode === "review";
+    (mode === "practice" && userAnswers[currentQuestionIndex]) ||
+    mode === "review";
 
   return (
     <div id="screen-quiz">
@@ -52,65 +60,50 @@ const QuizScreen = ({
           >
             <div className="w-full bg-gray-700 rounded-full h-2.5 mb-4">
               <div
-                className="bg-indigo-500 h-2.5 rounded-full transition-all duration-300 ease-in-out"
+                className="bg-indigo-500 h-2.5 rounded-full"
                 style={{ width: `${progressPercentage}%` }}
               ></div>
             </div>
             <div className="flex justify-between items-center mb-4">
-              <p id="progress-text" className="text-sm text-gray-400">
-                {`Question ${currentQuestionIndex + 1} of ${
-                  quizQuestions.length
-                }`}
-              </p>
+              <p className="text-sm text-gray-400">{`Question ${
+                currentQuestionIndex + 1
+              } of ${quizQuestions.length}`}</p>
               {mode === "exam" && timeLeft > 0 && (
-                <p id="timer-text" className="text-sm text-gray-400">
+                <p className="text-sm text-gray-400">
                   Time: {formatTime(timeLeft)}
                 </p>
               )}
             </div>
-            <div id="question-container" className="w-full text-left">
-              <p
-                id="question-text"
-                className="text-xl md:text-2xl font-semibold mb-6 leading-relaxed"
-              >
-                {currentQuestion.question}
-              </p>
-            </div>
-            <div
-              id="options-container"
-              className="w-full flex flex-col space-y-4"
-            >
+            <p className="text-xl md:text-2xl font-semibold mb-6 leading-relaxed">
+              {currentQuestion.question}
+            </p>
+
+            <div className="w-full flex flex-col space-y-4">
               {currentQuestion.options.map((option, index) => {
-                const isSelected = selectedAnswer === option;
+                const isSelected = userAnswers[currentQuestionIndex] === option;
                 const isCorrectAnswer = currentQuestion.answer === option;
                 let buttonClass =
                   "bg-gray-700 hover:bg-gray-600 border-transparent";
-
-                if (mode === "review") {
-                  if (isCorrectAnswer) {
+                if (
+                  mode === "review" ||
+                  (mode === "practice" && userAnswers[currentQuestionIndex])
+                ) {
+                  if (isCorrectAnswer)
                     buttonClass = "bg-green-500/20 border-green-500";
-                  } else if (isSelected) {
+                  else if (isSelected)
                     buttonClass = "bg-red-500/20 border-red-500";
-                  }
-                } else if (mode === "practice" && selectedAnswer) {
-                  if (isCorrectAnswer) {
-                    buttonClass = "bg-green-500/20 border-green-500";
-                  } else if (isSelected) {
-                    buttonClass = "bg-red-500/20 border-red-500";
-                  }
                 } else if (mode === "exam" && isSelected) {
                   buttonClass = "bg-indigo-500/50 border-indigo-400";
                 }
-
                 return (
                   <button
                     key={index}
                     onClick={() => handleOptionClick(option)}
                     disabled={
                       mode === "review" ||
-                      (mode === "practice" && selectedAnswer)
+                      (mode === "practice" && userAnswers[currentQuestionIndex])
                     }
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 border-2 flex justify-between items-center ${buttonClass}`}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-all border-2 flex justify-between items-center ${buttonClass}`}
                   >
                     <span>{option}</span>
                     {mode === "review" && isSelected && (
@@ -128,15 +121,11 @@ const QuizScreen = ({
             </div>
 
             {showExplanation && (
-              <div
-                id="explanation-container"
-                className="mt-4 p-4 bg-gray-700/50 rounded-lg"
-              >
+              <div className="mt-4 p-4 bg-gray-700/50 rounded-lg">
                 <h3 className="font-bold text-lg text-green-300">
                   Explanation:
                 </h3>
                 <p
-                  id="explanation-text"
                   className="text-gray-300 mt-2"
                   dangerouslySetInnerHTML={{
                     __html: currentQuestion.explanation.replace(
@@ -156,15 +145,13 @@ const QuizScreen = ({
                 <button
                   onClick={goToPrev}
                   disabled={currentQuestionIndex === 0}
-                  id="prev-button"
                   className="nav-button bg-gray-600"
                 >
                   Previous
                 </button>
-                {mode === "exam" && selectedAnswer && (
+                {mode === "exam" && userAnswers[currentQuestionIndex] && (
                   <button
                     onClick={handleClearAnswer}
-                    id="clear-button"
                     className="nav-button bg-gray-700"
                   >
                     Clear Answer
@@ -173,17 +160,27 @@ const QuizScreen = ({
                 <button
                   onClick={goToNext}
                   disabled={currentQuestionIndex === quizQuestions.length - 1}
-                  id="next-button"
                   className="nav-button bg-indigo-600"
                 >
                   Next
+                </button>
+                <button
+                  onClick={handleBookmarkClick}
+                  className={`nav-button ${
+                    isBookmarked ? "bg-yellow-600" : "bg-blue-600"
+                  }`}
+                >
+                  {activeRoute === "bookmarks"
+                    ? "Remove Bookmark"
+                    : isBookmarked
+                    ? "Bookmarked"
+                    : "Bookmark"}
                 </button>
                 {currentQuestionIndex === quizQuestions.length - 1 &&
                   mode !== "review" &&
                   mode !== "practice" && (
                     <button
                       onClick={handleQuizSubmit}
-                      id="submit-button"
                       className="nav-button bg-red-600"
                     >
                       Submit

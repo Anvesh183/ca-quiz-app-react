@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
-const Layout = ({ children, onNavigate, activeRoute }) => {
-  // <-- Accept activeRoute
+const Layout = ({ children, onNavigate, activeRoute, user, onSignOut }) => {
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isDesktopSidebarCollapsed, setDesktopSidebarCollapsed] =
     useState(false);
@@ -29,8 +28,10 @@ const Layout = ({ children, onNavigate, activeRoute }) => {
   return (
     <div className="antialiased">
       <Sidebar
+        user={user}
+        onSignOut={onSignOut}
         onNavigate={onNavigate}
-        activeRoute={activeRoute} // <-- Pass activeRoute to Sidebar
+        activeRoute={activeRoute}
         isMobileOpen={isMobileSidebarOpen}
         isDesktopCollapsed={isDesktopSidebarCollapsed}
         onToggleMobile={toggleMobileSidebar}

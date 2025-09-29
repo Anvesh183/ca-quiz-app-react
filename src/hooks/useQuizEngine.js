@@ -32,7 +32,14 @@ const useQuizEngine = (
       }));
     }
     setQuestions(questionsToLoad);
-    setCurrentQuestionIndex(0);
+
+    // Safety check: if the current index is out of bounds, reset to the last question
+    if (currentQuestionIndex >= questionsToLoad.length) {
+      setCurrentQuestionIndex(Math.max(0, questionsToLoad.length - 1));
+    } else {
+      setCurrentQuestionIndex(0);
+    }
+
     setUserAnswers(initialAnswers);
     setVisited(new Set());
 
