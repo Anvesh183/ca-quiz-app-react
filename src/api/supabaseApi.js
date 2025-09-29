@@ -81,11 +81,13 @@ export const getCurrentUser = async () => {
   return session?.user ?? null;
 };
 
-// --- NEW DATABASE-DRIVEN BOOKMARK FUNCTIONS ---
+export const sendPasswordResetEmail = async (email) => {
+  const redirectTo = window.location.origin;
+  return supabase.auth.resetPasswordForEmail(email, { redirectTo });
+};
 
-/**
- * Fetches the IDs of all questions bookmarked by a user.
- */
+// --- DATABASE-DRIVEN BOOKMARK FUNCTIONS ---
+
 export const fetchBookmarkIds = async (userId) => {
   if (!userId) return [];
   const { data, error } = await supabase
@@ -99,9 +101,6 @@ export const fetchBookmarkIds = async (userId) => {
   return data.map((b) => b.question_id);
 };
 
-/**
- * Fetches the full question objects for an array of question IDs.
- */
 export const fetchQuestionsByIds = async (questionIds) => {
   if (!questionIds || questionIds.length === 0) return [];
   const { data, error } = await supabase
@@ -115,9 +114,6 @@ export const fetchQuestionsByIds = async (questionIds) => {
   return data;
 };
 
-/**
- * Adds a bookmark for a user and question.
- */
 export const addBookmark = async (userId, questionId) => {
   const { error } = await supabase
     .from("bookmarks")
@@ -125,9 +121,6 @@ export const addBookmark = async (userId, questionId) => {
   if (error) console.error("Error adding bookmark:", error);
 };
 
-/**
- * Removes a bookmark for a user and question.
- */
 export const removeBookmark = async (userId, questionId) => {
   const { error } = await supabase
     .from("bookmarks")
