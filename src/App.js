@@ -13,6 +13,7 @@ import ProfileScreen from "./screens/ProfileScreen";
 import {
   fetchQuestionsByMonth,
   fetchQuestionsByTopic,
+  fetchComputerMockTestQuestions,
   onAuthStateChange,
   signOut,
   getCurrentUser,
@@ -29,7 +30,8 @@ const App = () => {
   const [session, setSession] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [screen, setScreen] = useState("mode");
-  const [activeRoute, setActiveRoute] = useState("home");
+  const [activeRoute, setActiveRoute] = useState("currentAffairs");
+  const [subject, setSubject] = useState("currentAffairs");
   const [mode, setMode] = useState(null);
   const [filterType, setFilterType] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -40,6 +42,7 @@ const App = () => {
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState(new Map());
   const [lastQuizFilterValue, setLastQuizFilterValue] = useState(null);
 
+  // ... (useEffect, resetToHome, handleNavigate, etc. remain the same)
   useEffect(() => {
     const fetchInitialData = async (user) => {
       if (user) {
@@ -50,7 +53,6 @@ const App = () => {
         setBookmarkedQuestions(new Map());
       }
     };
-
     const checkCurrentUser = async () => {
       setLoadingSession(true);
       const user = await getCurrentUser();
@@ -60,21 +62,19 @@ const App = () => {
       }
       setLoadingSession(false);
     };
-
     checkCurrentUser();
-
     const subscription = onAuthStateChange((session) => {
       setSession(session);
       fetchInitialData(session?.user);
     });
-
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
   const resetToHome = useCallback(() => {
-    setActiveRoute("home");
+    setActiveRoute("currentAffairs");
+    setSubject("currentAffairs");
     setScreen("mode");
     setMode(null);
     setFilterType(null);
@@ -84,8 +84,16 @@ const App = () => {
   const handleNavigate = useCallback(
     (target) => {
       setReviewAnswers({});
-      if (target === "home") {
-        resetToHome();
+      if (target === "currentAffairs") {
+        setActiveRoute("currentAffairs");
+        setSubject("currentAffairs");
+        setScreen("mode");
+        return;
+      }
+      if (target === "computerAwareness") {
+        setActiveRoute("computerAwareness");
+        setSubject("computerAwareness");
+        setScreen("mode");
         return;
       }
       if (target === "bookmarks") {
@@ -118,7 +126,6 @@ const App = () => {
   const handleBookmarkUpdate = async (question, isCurrentlyBookmarked) => {
     if (!session?.user) return;
     const { user } = session;
-
     const newBookmarks = new Map(bookmarkedQuestions);
     if (isCurrentlyBookmarked) {
       await removeBookmark(user.id, question.id);
@@ -128,7 +135,6 @@ const App = () => {
       newBookmarks.set(question.id, question);
     }
     setBookmarkedQuestions(newBookmarks);
-
     if (activeRoute === "bookmarks") {
       const newQuestions = Array.from(newBookmarks.values());
       setQuestions(newQuestions);
@@ -143,10 +149,13 @@ const App = () => {
     setLastQuizFilterValue(value);
     try {
       let fetchedQuestions = [];
+
       if (filterType === "month") {
         fetchedQuestions = await fetchQuestionsByMonth(value);
-      } else {
-        fetchedQuestions = await fetchQuestionsByTopic(value);
+      } else if (filterType === "topic") {
+        fetchedQuestions = await fetchQuestionsByTopic(value, subject);
+      } else if (filterType === "mockTest") {
+        fetchedQuestions = await fetchComputerMockTestQuestions(value);
       }
 
       if (fetchedQuestions.length === 0) {
@@ -171,7 +180,6 @@ const App = () => {
       userAnswers: results.userAnswers,
     });
     setScreen("score");
-
     if (session?.user && mode !== "review") {
       saveQuizResult({
         user_id: session.user.id,
@@ -201,7 +209,6 @@ const App = () => {
         lastQuiz.userAnswers[index] && lastQuiz.userAnswers[index] !== q.answer
       );
     });
-
     if (incorrectQuestions.length > 0) {
       setQuestions(incorrectQuestions);
       setMode("review");
@@ -233,6 +240,7 @@ const App = () => {
       case "mode":
         return (
           <ModeScreen
+            subject={subject} // Pass the subject to the screen
             onSelectMode={(m) => {
               setMode(m);
               setScreen("filterType");
@@ -242,6 +250,7 @@ const App = () => {
       case "filterType":
         return (
           <FilterTypeScreen
+            subject={subject}
             onSelectFilterType={(f) => {
               setFilterType(f);
               setScreen("filterValue");
@@ -252,6 +261,7 @@ const App = () => {
       case "filterValue":
         return (
           <FilterValueScreen
+            subject={subject}
             filterType={filterType}
             onSelectFilterValue={handleSelectFilterValue}
             onBack={() => setScreen("filterType")}
@@ -292,7 +302,7 @@ const App = () => {
               You can bookmark questions during any quiz.
             </p>
             <button className="nav-button bg-indigo-600" onClick={resetToHome}>
-              Back to Home
+              Go to Quizzes
             </button>
           </div>
         );
@@ -306,6 +316,7 @@ const App = () => {
       default:
         return (
           <ModeScreen
+            subject={subject}
             onSelectMode={(m) => {
               setMode(m);
               setScreen("filterType");

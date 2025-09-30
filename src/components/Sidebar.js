@@ -30,6 +30,7 @@ const Sidebar = ({
         md:translate-x-0`}
     >
       <div className="p-5 border-b border-gray-700 flex justify-between items-center">
+        {/* ... (no changes to the header section) */}
         {!isDesktopCollapsed && (
           <div id="sidebar-header">
             <h1 className="text-2xl font-bold text-indigo-400">
@@ -52,16 +53,31 @@ const Sidebar = ({
       </div>
 
       <nav className={`flex-1 space-y-2 ${isDesktopCollapsed ? "p-2" : "p-4"}`}>
+        {/* --- CHANGE 1: Renamed "Home" to "Current Affairs" --- */}
         <a
           href="#"
-          id="nav-home"
+          id="nav-ca"
           className={`nav-link ${isDesktopCollapsed && "justify-center"} ${
-            activeRoute === "home" ? "bg-gray-700 text-white" : ""
+            activeRoute === "currentAffairs" ? "bg-gray-700 text-white" : ""
           }`}
-          onClick={(e) => handleNavClick(e, "home")}
+          onClick={(e) => handleNavClick(e, "currentAffairs")}
         >
-          <i className="fas fa-home w-6"></i>
-          {!isDesktopCollapsed && <span className="ml-4">Home</span>}
+          <i className="fas fa-globe-asia w-6"></i>
+          {!isDesktopCollapsed && <span className="ml-4">Current Affairs</span>}
+        </a>
+        {/* --- CHANGE 2: Added "Computer Awareness" link --- */}
+        <a
+          href="#"
+          id="nav-ca"
+          className={`nav-link ${isDesktopCollapsed && "justify-center"} ${
+            activeRoute === "computerAwareness" ? "bg-gray-700 text-white" : ""
+          }`}
+          onClick={(e) => handleNavClick(e, "computerAwareness")}
+        >
+          <i className="fas fa-laptop-code w-6"></i>
+          {!isDesktopCollapsed && (
+            <span className="ml-4">Computer Awareness</span>
+          )}
         </a>
         <a
           href="#"
@@ -82,13 +98,13 @@ const Sidebar = ({
           }`}
           onClick={(e) => handleNavClick(e, "profile")}
         >
-          {/* --- ICON ADDED HERE --- */}
           <i className="fas fa-user-circle w-6"></i>
           {!isDesktopCollapsed && <span className="ml-4">Profile</span>}
         </a>
       </nav>
 
       <div className={`p-4 border-t border-gray-700`}>
+        {/* ... (no changes to the bottom section) */}
         {user && !isDesktopCollapsed && (
           <div className="mb-4 text-center">
             <p className="text-sm text-gray-400">Signed in as</p>

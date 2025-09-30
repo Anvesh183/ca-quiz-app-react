@@ -1,10 +1,18 @@
 import React from "react";
 
-const ModeScreen = ({ onSelectMode }) => {
+const ModeScreen = ({ subject, onSelectMode }) => {
+  // Helper to format the subject name for display
+  // e.g., 'currentAffairs' becomes 'Current Affairs'
+  const subjectTitle = subject
+    ? subject
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase())
+    : "New";
+
   return (
     <div id="screen-mode" className="text-center">
       <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-        Start a New Quiz
+        {subjectTitle} Quiz
       </h1>
       <p className="text-gray-400 mb-8">
         First, select a mode for your session.

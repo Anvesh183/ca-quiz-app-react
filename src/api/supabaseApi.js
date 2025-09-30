@@ -1,7 +1,18 @@
 import { supabase } from "../supabaseClient";
 
-export const fetchTopics = async () => {
-  const { data, error } = await supabase.from("questions").select("topic");
+// --- UNIFIED FETCH FUNCTIONS ---
+
+export const fetchTopics = async (subject) => {
+  let query = supabase.from("questions").select("topic");
+
+  if (subject === "computerAwareness") {
+    query = query.eq("category", "Computer Awareness");
+  } else {
+    query = query.neq("category", "Computer Awareness");
+  }
+
+  const { data, error } = await query;
+
   if (error) {
     console.error("Error fetching topics:", error);
     throw new Error(error.message);
@@ -10,11 +21,16 @@ export const fetchTopics = async () => {
   return uniqueTopics;
 };
 
-export const fetchQuestionsByTopic = async (topicName) => {
-  const { data, error } = await supabase
-    .from("questions")
-    .select("*")
-    .eq("topic", topicName);
+export const fetchQuestionsByTopic = async (topicName, subject) => {
+  let query = supabase.from("questions").select("*").eq("topic", topicName);
+
+  if (subject === "computerAwareness") {
+    query = query.eq("category", "Computer Awareness");
+  } else {
+    query = query.neq("category", "Computer Awareness");
+  }
+
+  const { data, error } = await query;
   if (error) {
     console.error("Error fetching questions by topic:", error);
     throw new Error(error.message);
@@ -26,7 +42,9 @@ export const fetchQuestionsByMonth = async (monthId) => {
   const { data, error } = await supabase
     .from("questions")
     .select("*")
-    .eq("month", monthId);
+    .eq("month", monthId)
+    .neq("category", "Computer Awareness");
+
   if (error) {
     console.error("Error fetching questions by month:", error);
     throw new Error(error.message);
@@ -34,7 +52,23 @@ export const fetchQuestionsByMonth = async (monthId) => {
   return data;
 };
 
-// --- AUTHENTICATION FUNCTIONS ---
+// --- NEW MOCK TEST FUNCTION ---
+export const fetchComputerMockTestQuestions = async (mockId) => {
+  const { data, error } = await supabase
+    .from("mock_questions")
+    .select("questions(*)") // Select all columns from the joined 'questions' table
+    .eq("mock_id", mockId); // Filter by the mock test ID
+
+  if (error) {
+    console.error("Error fetching mock test questions:", error);
+    throw new Error(error.message);
+  }
+  // The result is an array of objects, where each object has a 'questions' property.
+  // We need to extract just the question data.
+  return data.map((item) => item.questions);
+};
+
+// --- AUTHENTICATION, BOOKMARK, and HISTORY FUNCTIONS (No changes needed) ---
 export const signUp = async (email, password, fullName, phone) => {
   return supabase.auth.signUp({
     email,
@@ -77,7 +111,6 @@ export const sendPasswordResetEmail = async (email) => {
   return supabase.auth.resetPasswordForEmail(email, { redirectTo });
 };
 
-// --- BOOKMARK FUNCTIONS ---
 export const fetchBookmarkIds = async (userId) => {
   if (!userId) return [];
   const { data, error } = await supabase
@@ -120,7 +153,6 @@ export const removeBookmark = async (userId, questionId) => {
   if (error) console.error("Error removing bookmark:", error);
 };
 
-// --- QUIZ HISTORY FUNCTIONS ---
 export const saveQuizResult = async (result) => {
   const { data, error } = await supabase.from("quiz_history").insert([result]);
 
@@ -145,17 +177,15 @@ export const fetchQuizHistory = async (userId) => {
   return data;
 };
 
-// --- THIS IS THE FIX ---
-// The .delete() operation now correctly uses .eq() to specify which rows to delete.
 export const clearQuizHistory = async (userId) => {
   if (!userId) return;
   const { error } = await supabase
     .from("quiz_history")
     .delete()
-    .eq("user_id", userId); // Use .eq() instead of .match()
+    .eq("user_id", userId);
 
   if (error) {
     console.error("Error clearing quiz history:", error);
-    throw error; // Throw the error so the UI can catch it
+    throw error;
   }
 };
