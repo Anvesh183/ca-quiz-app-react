@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
+import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import Layout from "./components/Layout";
 import ModeScreen from "./screens/ModeScreen";
 import FilterTypeScreen from "./screens/FilterTypeScreen";
@@ -7,6 +9,7 @@ import QuizScreen from "./screens/QuizScreen";
 import ScoreScreen from "./screens/ScoreScreen";
 import Loader from "./components/Loader";
 import AuthScreen from "./screens/AuthScreen";
+import ProfileScreen from "./screens/ProfileScreen";
 import {
   fetchQuestionsByMonth,
   fetchQuestionsByTopic,
@@ -17,9 +20,12 @@ import {
   fetchQuestionsByIds,
   addBookmark,
   removeBookmark,
+  saveQuizResult,
+  clearQuizHistory,
 } from "./api/supabaseApi";
 
 const App = () => {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [screen, setScreen] = useState("mode");
@@ -32,6 +38,7 @@ const App = () => {
   const [lastQuiz, setLastQuiz] = useState(null);
   const [reviewAnswers, setReviewAnswers] = useState({});
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState(new Map());
+  const [lastQuizFilterValue, setLastQuizFilterValue] = useState(null);
 
   useEffect(() => {
     const fetchInitialData = async (user) => {
@@ -42,14 +49,6 @@ const App = () => {
       } else {
         setBookmarkedQuestions(new Map());
       }
-    };
-
-    const setupAuthListener = () => {
-      const subscription = onAuthStateChange(async (session) => {
-        setSession(session);
-        await fetchInitialData(session?.user);
-      });
-      return subscription;
     };
 
     const checkCurrentUser = async () => {
@@ -63,7 +62,11 @@ const App = () => {
     };
 
     checkCurrentUser();
-    const subscription = setupAuthListener();
+
+    const subscription = onAuthStateChange((session) => {
+      setSession(session);
+      fetchInitialData(session?.user);
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -88,7 +91,6 @@ const App = () => {
       if (target === "bookmarks") {
         setActiveRoute("bookmarks");
         const bookmarkedArray = Array.from(bookmarkedQuestions.values());
-
         if (bookmarkedArray.length > 0) {
           setQuestions(bookmarkedArray);
           setMode("review");
@@ -101,6 +103,11 @@ const App = () => {
       if (target === "emptyBookmarks") {
         setActiveRoute("bookmarks");
         setScreen("emptyBookmarks");
+        return;
+      }
+      if (target === "profile") {
+        setActiveRoute("profile");
+        setScreen("profile");
         return;
       }
       resetToHome();
@@ -122,7 +129,6 @@ const App = () => {
     }
     setBookmarkedQuestions(newBookmarks);
 
-    // If we are on the bookmarks screen, update the live question list
     if (activeRoute === "bookmarks") {
       const newQuestions = Array.from(newBookmarks.values());
       setQuestions(newQuestions);
@@ -134,6 +140,7 @@ const App = () => {
 
   const handleSelectFilterValue = async (value) => {
     setLoading(true);
+    setLastQuizFilterValue(value);
     try {
       let fetchedQuestions = [];
       if (filterType === "month") {
@@ -141,15 +148,16 @@ const App = () => {
       } else {
         fetchedQuestions = await fetchQuestionsByTopic(value);
       }
+
       if (fetchedQuestions.length === 0) {
-        alert(`No questions found.`);
+        toast.error("No questions found for this selection.");
         setScreen("filterValue");
       } else {
         setQuestions(fetchedQuestions);
         setScreen("quiz");
       }
     } catch (error) {
-      alert("Could not load questions.");
+      toast.error("Could not load questions.");
       console.error(error);
     } finally {
       setLoading(false);
@@ -163,6 +171,21 @@ const App = () => {
       userAnswers: results.userAnswers,
     });
     setScreen("score");
+
+    if (session?.user && mode !== "review") {
+      saveQuizResult({
+        user_id: session.user.id,
+        score: results.score,
+        correct_count: results.correct,
+        incorrect_count: results.incorrect,
+        unattempted_count: results.unattempted,
+        quiz_type: filterType,
+        quiz_filter: lastQuizFilterValue,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["quizHistory", session.user.id],
+      });
+    }
   };
 
   const handleReview = () => {
@@ -172,8 +195,40 @@ const App = () => {
     setScreen("quiz");
   };
 
+  const handleReviewMistakes = () => {
+    const incorrectQuestions = lastQuiz.questions.filter((q, index) => {
+      return (
+        lastQuiz.userAnswers[index] && lastQuiz.userAnswers[index] !== q.answer
+      );
+    });
+
+    if (incorrectQuestions.length > 0) {
+      setQuestions(incorrectQuestions);
+      setMode("review");
+      setReviewAnswers(lastQuiz.userAnswers);
+      setScreen("quiz");
+    } else {
+      toast.success("You had no incorrect answers to review!");
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!session?.user) return;
+    try {
+      await clearQuizHistory(session.user.id);
+      queryClient.invalidateQueries({
+        queryKey: ["quizHistory", session.user.id],
+      });
+      toast.success("Quiz history cleared successfully.");
+    } catch (error) {
+      toast.error("Failed to clear history. Please try again.");
+      console.error("Clear history error:", error);
+    }
+  };
+
   const renderAppContent = () => {
     if (loading) return <Loader />;
+
     switch (screen) {
       case "mode":
         return (
@@ -205,7 +260,7 @@ const App = () => {
       case "quiz":
         return (
           <QuizScreen
-            key={questions.length} // Force re-mount when the number of questions changes
+            key={questions.map((q) => q.id).join("-")}
             questions={questions}
             mode={mode}
             onQuizEnd={handleQuizEnd}
@@ -226,6 +281,7 @@ const App = () => {
             }}
             onReview={handleReview}
             onHome={resetToHome}
+            onReviewMistakes={handleReviewMistakes}
           />
         );
       case "emptyBookmarks":
@@ -239,6 +295,13 @@ const App = () => {
               Back to Home
             </button>
           </div>
+        );
+      case "profile":
+        return (
+          <ProfileScreen
+            user={session.user}
+            onClearHistory={handleClearHistory}
+          />
         );
       default:
         return (

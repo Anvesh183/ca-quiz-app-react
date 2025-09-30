@@ -1,8 +1,5 @@
 import { supabase } from "../supabaseClient";
 
-/**
- * Fetches a unique, sorted list of all topics.
- */
 export const fetchTopics = async () => {
   const { data, error } = await supabase.from("questions").select("topic");
   if (error) {
@@ -13,9 +10,6 @@ export const fetchTopics = async () => {
   return uniqueTopics;
 };
 
-/**
- * Fetches all questions for a specific topic.
- */
 export const fetchQuestionsByTopic = async (topicName) => {
   const { data, error } = await supabase
     .from("questions")
@@ -28,9 +22,6 @@ export const fetchQuestionsByTopic = async (topicName) => {
   return data;
 };
 
-/**
- * Fetches all questions for a specific month.
- */
 export const fetchQuestionsByMonth = async (monthId) => {
   const { data, error } = await supabase
     .from("questions")
@@ -68,7 +59,7 @@ export const signOut = async () => {
 export const onAuthStateChange = (callback) => {
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((event, session) => {
+  } = supabase.auth.onAuthStateChange((_event, session) => {
     callback(session);
   });
   return subscription;
@@ -86,8 +77,7 @@ export const sendPasswordResetEmail = async (email) => {
   return supabase.auth.resetPasswordForEmail(email, { redirectTo });
 };
 
-// --- DATABASE-DRIVEN BOOKMARK FUNCTIONS ---
-
+// --- BOOKMARK FUNCTIONS ---
 export const fetchBookmarkIds = async (userId) => {
   if (!userId) return [];
   const { data, error } = await supabase
@@ -125,6 +115,47 @@ export const removeBookmark = async (userId, questionId) => {
   const { error } = await supabase
     .from("bookmarks")
     .delete()
-    .match({ user_id: userId, question_id: questionId });
+    .eq("user_id", userId)
+    .eq("question_id", questionId);
   if (error) console.error("Error removing bookmark:", error);
+};
+
+// --- QUIZ HISTORY FUNCTIONS ---
+export const saveQuizResult = async (result) => {
+  const { data, error } = await supabase.from("quiz_history").insert([result]);
+
+  if (error) {
+    console.error("Error saving quiz result:", error);
+  }
+  return data;
+};
+
+export const fetchQuizHistory = async (userId) => {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("quiz_history")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching quiz history:", error);
+    return [];
+  }
+  return data;
+};
+
+// --- THIS IS THE FIX ---
+// The .delete() operation now correctly uses .eq() to specify which rows to delete.
+export const clearQuizHistory = async (userId) => {
+  if (!userId) return;
+  const { error } = await supabase
+    .from("quiz_history")
+    .delete()
+    .eq("user_id", userId); // Use .eq() instead of .match()
+
+  if (error) {
+    console.error("Error clearing quiz history:", error);
+    throw error; // Throw the error so the UI can catch it
+  }
 };

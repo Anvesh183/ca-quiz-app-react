@@ -121,12 +121,11 @@ const QuizScreen = ({
             </div>
 
             {showExplanation && (
-              <div className="mt-4 p-4 bg-gray-700/50 rounded-lg">
-                <h3 className="font-bold text-lg text-green-300">
-                  Explanation:
-                </h3>
+              <div id="explanation-container" className="mt-4 p-4 rounded-lg">
+                <h3 className="font-bold text-lg">Explanation:</h3>
                 <p
-                  className="text-gray-300 mt-2"
+                  id="explanation-text"
+                  className="mt-2"
                   dangerouslySetInnerHTML={{
                     __html: currentQuestion.explanation.replace(
                       /\*\*(.*?)\*\*/g,
@@ -157,13 +156,18 @@ const QuizScreen = ({
                     Clear Answer
                   </button>
                 )}
-                <button
-                  onClick={goToNext}
-                  disabled={currentQuestionIndex === quizQuestions.length - 1}
-                  className="nav-button bg-indigo-600"
-                >
-                  Next
-                </button>
+
+                {/* --- THIS IS THE FIX --- */}
+                {/* The "Next" button is now only rendered if it's NOT the last question */}
+                {currentQuestionIndex < quizQuestions.length - 1 && (
+                  <button
+                    onClick={goToNext}
+                    className="nav-button bg-indigo-600"
+                  >
+                    Next
+                  </button>
+                )}
+
                 <button
                   onClick={handleBookmarkClick}
                   className={`nav-button ${
@@ -177,8 +181,7 @@ const QuizScreen = ({
                     : "Bookmark"}
                 </button>
                 {currentQuestionIndex === quizQuestions.length - 1 &&
-                  mode !== "review" &&
-                  mode !== "practice" && (
+                  mode !== "review" && (
                     <button
                       onClick={handleQuizSubmit}
                       className="nav-button bg-red-600"

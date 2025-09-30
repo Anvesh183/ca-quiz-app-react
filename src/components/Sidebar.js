@@ -74,6 +74,18 @@ const Sidebar = ({
           <i className="fas fa-bookmark w-6"></i>
           {!isDesktopCollapsed && <span className="ml-4">Bookmarks</span>}
         </a>
+        <a
+          href="#"
+          id="nav-profile"
+          className={`nav-link ${isDesktopCollapsed && "justify-center"} ${
+            activeRoute === "profile" ? "bg-gray-700 text-white" : ""
+          }`}
+          onClick={(e) => handleNavClick(e, "profile")}
+        >
+          {/* --- ICON ADDED HERE --- */}
+          <i className="fas fa-user-circle w-6"></i>
+          {!isDesktopCollapsed && <span className="ml-4">Profile</span>}
+        </a>
       </nav>
 
       <div className={`p-4 border-t border-gray-700`}>

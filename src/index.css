@@ -226,11 +226,16 @@ body.light-mode {
   color: var(--text-light);
 }
 
-.light-mode h1.text-white {
+.light-mode h1.text-white,
+.light-mode h2.text-white {
   color: var(--text-light);
 }
 .light-mode p.text-gray-400 {
   color: var(--text-secondary-light);
+}
+.light-mode .text-gray-300 {
+  /* <-- FIX for explanation text */
+  color: var(--primary-dark);
 }
 
 .light-mode .selection-card,
@@ -301,13 +306,16 @@ body.light-mode {
   border-color: #f87171;
 }
 
+/* Explanation container in Light Mode */
 .light-mode #explanation-container {
-  background-color: #e0e7ff;
+  background-color: #eef2ff;
+  border: 1px solid #c7d2fe;
 }
 .light-mode #explanation-container h3 {
   color: #4338ca;
 }
-.light-mode #explanation-container p {
+.light-mode #explanation-container p,
+.light-mode #explanation-container b {
   color: #374151;
 }
 
@@ -351,6 +359,10 @@ body.light-mode {
   background-color: #3b82f6;
   color: white;
 }
+.light-mode .bg-yellow-600 {
+  background-color: #f59e0b;
+  color: white;
+}
 
 .light-mode .bg-red-600 {
   background-color: #ef4444;
@@ -364,6 +376,32 @@ body.light-mode {
   background-color: #e5e7eb;
   color: #4b5563;
 }
+
+/* Profile Screen History Table in Light Mode */
+.light-mode .bg-gray-800.rounded-xl {
+  background-color: var(--primary-light);
+  border: 1px solid var(--border-light);
+}
+.light-mode table thead.bg-gray-700 {
+  background-color: var(--secondary-light);
+}
+.light-mode table thead,
+.light-mode table tbody td {
+  color: var(--text-light);
+}
+.light-mode table tbody tr.border-gray-700 {
+  border-color: var(--border-light);
+}
+.light-mode table tbody tr:hover {
+  background-color: var(--secondary-light);
+}
+.light-mode #correct-count {
+  color: #16a34a;
+}
+.light-mode #incorrect-count {
+  color: #ef4444;
+}
+
 @media (max-width: 768px) {
   #navigation-buttons {
     flex-direction: column;
@@ -428,4 +466,26 @@ body.light-mode {
 
 #logo {
   border-radius: 50%;
+}
+
+.light-mode .bg-red-700 {
+  background-color: #fee2e2; /* Light red background */
+  color: #b91c1c; /* Dark red text */
+}
+.light-mode .text-red-200 {
+  /* This ensures the text color is correct */
+  color: #b91c1c;
+}
+.light-mode .hover\:bg-red-600:hover {
+  background-color: #fecaca; /* Slightly darker red on hover */
+}
+/* ------------------------- */
+
+.light-mode .bg-gray-700 {
+  background-color: #d1d5db;
+  color: #374151;
+}
+.light-mode .bg-gray-600 {
+  background-color: #e5e7eb;
+  color: #4b5563;
 }
