@@ -26,6 +26,7 @@ const FilterValueScreen = ({
     displayOptions = [
       { id: "september-2025", name: "September 2025" },
       { id: "august-2025", name: "August 2025" },
+      { id: "october-2025", name: "October 2025" },
     ];
   } else if (filterType === "topic") {
     displayOptions = topics?.map((topic) => ({ id: topic, name: topic })) || [];
